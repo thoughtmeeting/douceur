@@ -63,7 +63,7 @@ func main() {
 func parseCSS(filePath string) {
 	input := readFile(filePath)
 
-	stylesheet, err := parser.Parse(string(input))
+	stylesheet, err := parser.Parse(string(input), "")
 	if err != nil {
 		fmt.Println("Parsing error: ", err)
 		os.Exit(1)
@@ -76,7 +76,7 @@ func parseCSS(filePath string) {
 func inlineCSS(filePath string) {
 	input := readFile(filePath)
 
-	output, err := inliner.Inline(string(input))
+	output, err := inliner.Inline(string(input), "")
 	if err != nil {
 		fmt.Println("Inlining error: ", err)
 		os.Exit(1)
