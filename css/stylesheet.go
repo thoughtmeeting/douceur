@@ -3,6 +3,7 @@ package css
 // Stylesheet represents a parsed stylesheet
 type Stylesheet struct {
 	Rules []*Rule
+	Href  string
 }
 
 // NewStylesheet instanciate a new Stylesheet

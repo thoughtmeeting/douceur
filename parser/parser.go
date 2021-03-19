@@ -8,7 +8,7 @@ import (
 
 	"github.com/gorilla/css/scanner"
 
-	"github.com/aymerick/douceur/css"
+	"github.com/thoughtmeeting/douceur/css"
 )
 
 const (
@@ -42,8 +42,8 @@ func NewParser(txt string) *Parser {
 }
 
 // Parse parses a whole stylesheet
-func Parse(text string) (*css.Stylesheet, error) {
-	return NewParser(text).ParseStylesheet()
+func Parse(text string, href string) (*css.Stylesheet, error) {
+	return NewParser(text).ParseStylesheet(href)
 }
 
 // ParseDeclarations parses CSS declarations
@@ -52,8 +52,9 @@ func ParseDeclarations(text string) ([]*css.Declaration, error) {
 }
 
 // ParseStylesheet parses a stylesheet
-func (parser *Parser) ParseStylesheet() (*css.Stylesheet, error) {
+func (parser *Parser) ParseStylesheet(href string) (*css.Stylesheet, error) {
 	result := css.NewStylesheet()
+	result.Href = href
 
 	// Parse BOM
 	if _, err := parser.parseBOM(); err != nil {

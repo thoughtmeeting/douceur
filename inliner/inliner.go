@@ -2,12 +2,15 @@ package inliner
 
 import (
 	"fmt"
+	"io/ioutil"
+
+	"path"
 	"strconv"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/aymerick/douceur/css"
-	"github.com/aymerick/douceur/parser"
+	"github.com/thoughtmeeting/douceur/css"
+	"github.com/thoughtmeeting/douceur/parser"
 	"golang.org/x/net/html"
 )
 
@@ -23,6 +26,7 @@ var unsupportedSelectors = []string{
 // Inliner presents a CSS Inliner
 type Inliner struct {
 	// Raw HTML
+	base string //base dir of this file,for external reference
 	html string
 
 	// Parsed HTML document
@@ -45,21 +49,33 @@ type Inliner struct {
 }
 
 // NewInliner instanciates a new Inliner
-func NewInliner(html string) *Inliner {
+func NewInliner(html string, base string) *Inliner {
 	return &Inliner{
 		html:     html,
+		base:     base,
 		elements: make(map[string]*Element),
 	}
 }
 
 // Inline inlines css into html document
-func Inline(html string) (string, error) {
-	result, err := NewInliner(html).Inline()
+func Inline(html string, base string) (string, error) {
+	result, err := NewInliner(html, base).Inline()
 	if err != nil {
 		return "", err
 	}
 
 	return result, nil
+}
+
+// InlineFile inline css for a html file
+func InlineFile(file string) (string, error) {
+	bs, err := ioutil.ReadFile(file)
+	if err != nil {
+		return "", err
+	}
+
+	dir := path.Dir(file)
+	return Inline(string(bs), dir)
 }
 
 // Inline inlines CSS and returns HTML
@@ -106,7 +122,7 @@ func (inliner *Inliner) parseStylesheets() error {
 	var result error
 
 	inliner.doc.Find("style").EachWithBreak(func(i int, s *goquery.Selection) bool {
-		stylesheet, err := parser.Parse(s.Text())
+		stylesheet, err := parser.Parse(s.Text(), "")
 		if err != nil {
 			result = err
 			return false
@@ -120,6 +136,34 @@ func (inliner *Inliner) parseStylesheets() error {
 		return true
 	})
 
+	inliner.doc.Find("link").EachWithBreak(func(i int, s *goquery.Selection) bool {
+		rel, _ := s.Attr("rel")
+		typ, _ := s.Attr("type")
+		href, _ := s.Attr("href")
+		if rel == "stylesheet" && typ == "text/css" {
+			if href == "" {
+				return false
+			}
+			file := path.Join(inliner.base, href)
+			css, err := ioutil.ReadFile(file)
+			if err != nil {
+				return false
+			}
+
+			stylesheet, err := parser.Parse(string(css), "")
+			if err != nil {
+				result = err
+				return false
+			}
+
+			inliner.stylesheets = append(inliner.stylesheets, stylesheet)
+
+			// removes parsed stylesheet
+			s.Remove()
+			return true
+		}
+		return false
+	})
 	return result
 }
 
